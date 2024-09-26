@@ -18,29 +18,47 @@ scrape_configs:
         labels:
           job: "nginx"
           __path__: /var/log/*.log
-  # - job_name: flog_scrape 
-  #   docker_sd_configs:
-  #     - host: unix:///var/run/docker.sock
-  #       refresh_interval: 5s
-  #       filters:
-  #         - name: label
-  #           values: ["logging=promtail"] 
-  #   relabel_configs:
-  #     - source_labels: ['__meta_docker_container_name']
-  #       regex: '/(.*)'
-  #       target_label: 'container'
-  #     - source_labels: ['__meta_docker_container_log_stream']
-  #       target_label: 'logstream'
-  #     - source_labels: ['__meta_docker_container_label_logging_jobname']
-  #       target_label: 'job'
-  #   pipeline_stages:
-  #     - cri: {}
-  #     - multiline:
-  #         firstline: ^\d{4}-\d{2}-\d{2} \d{1,2}:\d{2}:\d{2},\d{3}
-  #         max_wait_time: 3s
-  #     # https://grafana.com/docs/loki/latest/clients/promtail/stages/json/
-  #     - json:
-  #         expressions:
-  #           #message: message
-  #           level: level
-  #           #output: 'message'
+    pipeline_stages:
+    - match:
+        selector: '{job="nginx"} |= "crit"'
+        stages:
+          - regex:
+              expression: '^(?P<timestamp>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) \[(?P<log_level>\w+)\] (?P<pid>\d+)#(?P<tid>\d+): \*(?P<connection_id>\d+) (?P<message>.*), client: (?P<client_ip>[^,]+), server: (?P<server>[^,]+), request: "(?P<method>\S+) (?P<request>[^"]+) (?P<protocol>\S+)", upstream: "(?P<upstream>[^"]+)", host: "(?P<host>[^"]+)"'
+          - labels:
+              timestamp:
+              log_level:
+              pid:
+              tid:
+              connection_id:
+              message:
+              client_ip:
+              server:
+              method:
+              request:
+              protocol:
+              upstream:
+              host:
+    - match:
+        selector: '{job="nginx"}'
+        stages:
+          - regex:
+              expression: '^(?P<client_ip>\S+) \S+ \S+ \[(?P<timestamp>[^\]]+)\] "(?P<method>\S+) (?P<request>[^"]+) (?P<protocol>\S+)" (?P<status>\d+) (?P<bytes_sent>\d+) "(?P<referer>[^"]*)" "(?P<user_agent>[^"]*)" (?P<request_length>\d+) (?P<request_time>\S+) \[(?P<proxy_upstream_name>[^\]]*)\] \[(?P<proxy_alternative_upstream_name>[^\]]*)\] (?P<upstream_addr>\S+) (?P<upstream_response_length>\d+) (?P<upstream_response_time>\S+) (?P<upstream_status>\d+) (?P<req_id>\S+)$'
+          - labels:
+              client_ip:
+              method:
+              request:
+              status:
+              timestamp:
+              # protocol:
+              bytes_sent:
+              # referer:
+              # user_agent:
+              request_length:
+              request_time:
+              # proxy_upstream_name:
+              # proxy_alternative_upstream_name:
+              # upstream_addr:
+              upstream_response_length:
+              upstream_response_time:
+              upstream_status:
+              # req_id:

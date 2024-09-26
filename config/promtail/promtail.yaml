@@ -62,3 +62,7 @@ scrape_configs:
               upstream_response_time:
               upstream_status:
               # req_id:
+          - timestamp:
+              # Mon Jan 2 15:04:05 -0700 MST 2006
+              format: 02/Jan/2006:15:04:05 -0700
+              source: timestamp
